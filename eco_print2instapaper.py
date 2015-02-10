@@ -17,7 +17,7 @@ mail_config = {
     'from': 'xxxxxxxx@qq.com',
     'server': 'smtp.qq.com',
     'username': 'xxxxxxxx@qq.com',
-    'pwd': '''xxxxxxxxxxxxxxxx''',
+    'pwd': '''xxxxxxxxxxxx''',
     'to': 'readlater.xxxxxxxxxx@instapaper.com'
 }
 
@@ -39,6 +39,7 @@ sections = {
 	'Science and technology': 'section-80',
 	'Books and arts': 'section-89'
 }
+sections_res = {'section-71': 'United States', 'section-89': 'Books and arts', 'section-73': 'Asia', 'section-72': 'The Americas', 'section-75': 'Europe', 'section-99': 'Middle East and Africa', 'section-77': 'Business', 'section-76': 'Britain', 'section-80': 'Science and technology', 'section-68': 'Letters', 'section-69': 'Leaders', 'section-93': 'The world this week', 'section-79': 'Finance and economics', 'section-77729': 'China', 'section-104': 'Briefing', 'section-74': 'International'}
 
 section_ids = ['section-93', 'section-69', 'section-68', 'section-104', 'section-71', 'section-72', 'section-73', 'section-77729', 'section-99', 'section-75', 'section-76', 'section-74', 'section-77', 'section-79', 'section-80', 'section-89']
 
@@ -57,6 +58,7 @@ smtp.login(mail_config['username'], mail_config['pwd'])
 
 with open('eco_print_sent_log.txt', 'a') as logfile:
 	for item in section_ids:
+		print '======== Processing section: %s ========' % sections_res[item]
 		section = soup.find(id = item)
 		article_list = section.find_all('a', 'node-link')
 		item_id = section_ids.index(item) + 1
