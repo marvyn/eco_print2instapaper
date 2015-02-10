@@ -43,19 +43,19 @@ sections = {
 section_ids = ['section-93', 'section-69', 'section-68', 'section-104', 'section-71', 'section-72', 'section-73', 'section-77729', 'section-99', 'section-75', 'section-76', 'section-74', 'section-77', 'section-79', 'section-80', 'section-89']
 
 
-if not os.path.isfile('eco_printed_sent_log.txt'):
-	log_creat = open('eco_printed_sent_log.txt', 'w')
+if not os.path.isfile('eco_print_sent_log.txt'):
+	log_creat = open('eco_print_sent_log.txt', 'w')
 	log_creat.write('')
 	log_creat.close()
 
-sent_article_id = open('eco_printed_sent_log.txt').readlines()
+sent_article_id = open('eco_print_sent_log.txt').readlines()
 
 smtp = smtplib.SMTP_SSL()
 smtp.connect(mail_config['server'])
 smtp.login(mail_config['username'], mail_config['pwd'])
 
 
-with open('eco_printed_sent_log.txt', 'a') as logfile:
+with open('eco_print_sent_log.txt', 'a') as logfile:
 	for item in section_ids:
 		section = soup.find(id = item)
 		article_list = section.find_all('a', 'node-link')
