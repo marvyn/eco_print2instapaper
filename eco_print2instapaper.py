@@ -6,18 +6,19 @@ import os, urllib2, requests, smtplib, sys, time
 from bs4 import BeautifulSoup
 from email.mime.text import MIMEText
 
-url = 'http://www.economist.com/printedition'
+host = 'http://www.economist.com'
 headers = {'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_10_2) AppleWebKit/600.3.18 (KHTML, like Gecko) Version/8.0.3 Safari/600.3.18'}
 
-req = urllib2.Request(url = url, headers = headers)
+req = urllib2.Request(url = host + '/printedition', headers = headers)
 page = urllib2.urlopen(req).read()
 soup = BeautifulSoup(page)
+article_no = len(soup.find_all('a', 'node-link'))
 
 mail_config = {
     'from': 'xxxxxxxx@qq.com',
     'server': 'smtp.qq.com',
     'username': 'xxxxxxxx@qq.com',
-    'pwd': '''xxxxxxxxxxxx''',
+    'pwd': '''xxxxxxxxxxxxxxxx''',
     'to': 'readlater.xxxxxxxxxx@instapaper.com'
 }
 
@@ -51,36 +52,50 @@ if not os.path.isfile('eco_print_sent_log.txt'):
 
 sent_article_id = open('eco_print_sent_log.txt').readlines()
 
-smtp = smtplib.SMTP_SSL()
-smtp.connect(mail_config['server'])
-smtp.login(mail_config['username'], mail_config['pwd'])
+def send_mail(subject, content):
+	msg = MIMEText(content, 'plain', 'utf-8')
+	msg['Subject'] = subject
+	msg['From'] = mail_config['from']
+	msg['To'] = mail_config['to']
+	smtp = smtplib.SMTP_SSL()
+	smtp.connect(mail_config['server'])
+	smtp.login(mail_config['username'], mail_config['pwd'])
+	smtp.sendmail(mail_config['from'], mail_config['to'], msg.as_string())
+	smtp.close()
 
+def main():
+	with open('eco_print_sent_log.txt', 'a') as logfile:
+		j = 0
+		for item in section_ids:
+			item_id = section_ids.index(item) + 1
+			print '========== Processing section: %s... (%s/16) ==========' % (sections_res[item], item_id)
+			section = soup.find(id = item)
+			section_title = section.find('h4').get_text()
+			section_fly_titles = section.find_all('h5')
+			article_list = section.find_all('a', 'node-link')
+			with open('eco_print_article_list.txt','a') as result:
+				i = 0
+				while i < len(article_list):
+					j += 1
+					article_title = article_list[i].get_text()
+					if item == 'section-93':
+						article_subject= article_title
+					else:
+						article_subject = section_fly_titles[i].get_text() + ' - ' + article_title
+					article_href = article_list[i]['href']
+					article_id = article_href.split('/')[-1].split('-')[0] + '\n'
+					article_link = host + article_list[i]['href'] + '\n'
+					if article_id in sent_article_id:
+						print '[%s/%s] <%s> already exists! (%s/%s)' % (i+1, len(article_list), article_subject, j, article_no)
+					else:
+						time.sleep(1)
+						logfile.write(article_id)
+						result.write(article_link)
+						print '<%s> got noted.' % article_subject
+						send_mail(article_subject, article_link)
+						print '[%s/%s] <%s> sent successful! (%s/%s)' % (i+1, len(article_list), article_subject, j, article_no)
+					i += 1
+					time.sleep(0.5)
 
-with open('eco_print_sent_log.txt', 'a') as logfile:
-	for item in section_ids:
-		print '======== Processing section: %s ========' % sections_res[item]
-		section = soup.find(id = item)
-		article_list = section.find_all('a', 'node-link')
-		item_id = section_ids.index(item) + 1
-		with open('eco_print_article_list.txt','a') as result:
-			i = 0
-			while i < len(article_list):
-				article_title = article_list[i].get_text()
-				article_href = article_list[i]['href']
-				article_id = article_href.split('/')[-1].split('-')[0] + '\n'
-				article_link = 'http://www.economist.com' + article_list[i]['href'] + '\n'
-				if article_id in sent_article_id:
-					print '<%s> already exists!' % article_title
-				else:
-					logfile.write(article_id)
-					result.write(article_link)
-					print '<%s> got noted.' % article_title
-					msg = MIMEText(article_link, 'plain', 'utf-8')
-					msg['Subject'] = article_title
-					msg['From'] = mail_config['from']
-					msg['To'] = mail_config['to']
-					smtp.sendmail(mail_config['from'], mail_config['to'], msg.as_string())
-					print '<' + article_title + '> sent successful! (' + str(i + 1) + '/' + str(len(article_list)) + ') (' + str(item_id) + '/' + str(len(section_ids)) + ')'
-				i += 1
-				time.sleep(1)
-smtp.quit()
+if __name__ == '__main__':
+	main()
