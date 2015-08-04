@@ -2,7 +2,7 @@
 #coding: utf-8
 
 __author__ = 'marvyn'
-import os, urllib2, requests, smtplib, sys, time
+import os, json, urllib2, requests, smtplib, sys, time
 from bs4 import BeautifulSoup
 from email.mime.text import MIMEText
 
@@ -45,12 +45,9 @@ sections_res = {'section-71': 'United States', 'section-89': 'Books and arts', '
 section_ids = ['section-93', 'section-69', 'section-68', 'section-104', 'section-71', 'section-72', 'section-73', 'section-77729', 'section-99', 'section-75', 'section-76', 'section-74', 'section-77', 'section-79', 'section-80', 'section-89']
 
 
-if not os.path.isfile('eco_print_sent_log.txt'):
-	log_creat = open('eco_print_sent_log.txt', 'w')
-	log_creat.write('')
-	log_creat.close()
-
-sent_article_id = open('eco_print_sent_log.txt').readlines()
+if not os.path.isfile('eco_print_sent_log.json'):
+	with open('eco_print_sent_log.json', 'w') as log_creat:
+		json.dump({}, log_creat)
 
 def send_mail(subject, content):
 	msg = MIMEText(content, 'plain', 'utf-8')
@@ -64,38 +61,38 @@ def send_mail(subject, content):
 	smtp.close()
 
 def main():
-	with open('eco_print_sent_log.txt', 'a') as logfile:
-		j = 0
-		for item in section_ids:
-			item_id = section_ids.index(item) + 1
-			print '========== Processing section: %s... (%s/16) ==========' % (sections_res[item], item_id)
-			section = soup.find(id = item)
-			section_title = section.find('h4').get_text()
-			section_fly_titles = section.find_all('h5')
-			article_list = section.find_all('a', 'node-link')
-			with open('eco_print_article_list.txt','a') as result:
-				i = 0
-				while i < len(article_list):
-					j += 1
-					article_title = article_list[i].get_text()
-					if item == 'section-93':
-						article_subject= article_title
-					else:
-						article_subject = section_fly_titles[i].get_text() + ' - ' + article_title
-					article_href = article_list[i]['href']
-					article_id = article_href.split('/')[-1].split('-')[0] + '\n'
-					article_link = host + article_list[i]['href'] + '\n'
-					if article_id in sent_article_id:
-						print '[%s/%s] <%s> already exists! (%s/%s)' % (i+1, len(article_list), article_subject, j, article_no)
-					else:
-						time.sleep(1)
-						logfile.write(article_id)
-						result.write(article_link)
-						print '<%s> got noted.' % article_subject
-						send_mail(article_subject, article_link)
-						print '[%s/%s] <%s> sent successful! (%s/%s)' % (i+1, len(article_list), article_subject, j, article_no)
-					i += 1
-					time.sleep(0.5)
+	sent_article_id = json.load(open('eco_print_sent_log.json'))
+	j = 0
+	for item in section_ids:
+		item_id = section_ids.index(item) + 1
+		print '========== Processing section: %s... (%s/16) ==========' % (sections_res[item], item_id)
+		section = soup.find(id = item)
+		section_title = section.find('h4').get_text()
+		section_fly_titles = section.find_all('h5')
+		article_list = section.find_all('a', 'node-link')
+		i = 0
+		while i < len(article_list):
+			j += 1
+			article_title = article_list[i].get_text()
+			if item == 'section-93':
+				article_subject= article_title
+			else:
+				article_subject = section_fly_titles[i].get_text() + ' - ' + article_title
+			article_href = article_list[i]['href']
+			article_id = article_href.split('/')[-1].split('-')[0]
+			article_link = host + article_list[i]['href']
+			if article_id in sent_article_id.keys():
+				print '[%s/%s] <%s> already exists! (%s/%s)' % (i+1, len(article_list), article_subject, j, article_no)
+			else:
+				time.sleep(1)
+				sent_article_id[article_id] = article_link
+				print '<%s> got noted.' % article_subject
+				send_mail(article_subject, article_link)
+				print '[%s/%s] <%s> sent successful! (%s/%s)' % (i+1, len(article_list), article_subject, j, article_no)
+			i += 1
+			time.sleep(0.5)
+	with open('eco_print_sent_log.json', 'w') as log_creat:
+		json.dump(sent_article_id, log_creat)
 
 if __name__ == '__main__':
 	main()
