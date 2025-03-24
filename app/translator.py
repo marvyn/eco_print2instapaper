@@ -43,7 +43,14 @@ class Translator:
                 temperature=0.3,
                 timeout=30,  # 添加超时设置
             )
-            return response.choices[0].message.content.strip()
+            if (
+                response
+                and response.choices
+                and response.choices[0].message
+                and response.choices[0].message.content
+            ):
+                return response.choices[0].message.content.strip()
+            return text
         except openai.APITimeoutError:
             self.logger.error("翻译超时，请检查网络连接")
             return f"{text} (翻译超时)"
